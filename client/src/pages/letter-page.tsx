@@ -2,11 +2,14 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocation, Link } from "wouter";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
-import { Letter } from "@shared/schema";
+import { Letter, SupabaseCarta } from "@shared/schema";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Loader2, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cartaService } from "@/lib/carta-service";
+import { useEffect, useState } from "react";
+import ReactMarkdown from 'react-markdown';
 
 interface LetterPageProps {
   params: {
@@ -15,12 +18,43 @@ interface LetterPageProps {
 }
 
 const LetterPage = ({ params }: LetterPageProps) => {
-  const id = params.id;
+  const id = parseInt(params.id);
   const [, setLocation] = useLocation();
+  const [cartaSupabase, setCartaSupabase] = useState<SupabaseCarta | null>(null);
+  const [isCartaLoading, setIsCartaLoading] = useState(true);
+  const [cartaError, setCartaError] = useState<Error | null>(null);
 
-  const { data: letter, isLoading, error } = useQuery<Letter>({
+  // Query para buscar carta pela API REST (fallback)
+  const { data: letter, isLoading: isLetterLoading, error: letterError } = useQuery<Letter>({
     queryKey: [`/api/letters/${id}`],
+    // Desabilitamos esta query se tivermos a carta do Supabase
+    enabled: cartaSupabase === null && !isCartaLoading,
   });
+
+  // Efeito para buscar a carta diretamente do Supabase
+  useEffect(() => {
+    const fetchCarta = async () => {
+      try {
+        setIsCartaLoading(true);
+        const carta = await cartaService.getCartaById(id);
+        setCartaSupabase(carta);
+        console.log("Carta carregada do Supabase:", carta);
+      } catch (error) {
+        console.error("Erro ao buscar carta do Supabase:", error);
+        setCartaError(error instanceof Error ? error : new Error('Erro desconhecido'));
+      } finally {
+        setIsCartaLoading(false);
+      }
+    };
+
+    fetchCarta();
+  }, [id]);
+
+  // Determina o estado de carregamento geral
+  const isLoading = isCartaLoading || isLetterLoading;
+  
+  // Determina se há algum erro
+  const error = cartaError || letterError;
 
   const formatDate = (dateString: Date | string) => {
     const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
@@ -31,6 +65,89 @@ const LetterPage = ({ params }: LetterPageProps) => {
     return content.split('\n\n').map((paragraph, index) => (
       <p key={index} className="mb-5">{paragraph}</p>
     ));
+  };
+
+  // Renderiza o conteúdo da carta do Supabase
+  const renderSupabaseCarta = (carta: SupabaseCarta) => {
+    const title = carta.jsonbody_carta?.title || 'Sem título';
+    const description = carta.jsonbody_carta?.description || carta.jsonbody_carta?.subtitle || 'Sem descrição';
+    const number = carta.id_sumary_carta;
+    const date = carta.date_send;
+    
+    // Verifica se temos conteúdo em markdown ou apenas json
+    const hasMarkdown = carta.markdonw_carta && carta.markdonw_carta.trim().length > 0;
+    const content = hasMarkdown 
+      ? carta.markdonw_carta 
+      : carta.jsonbody_carta?.content || 'Sem conteúdo';
+
+    return (
+      <div className="mb-6">
+        <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
+          <span>CARTA #{number}</span>
+          <span>•</span>
+          <span>{formatDate(date)}</span>
+        </div>
+        
+        <h1 className="text-3xl font-bold mb-6 font-heading">{title}</h1>
+        
+        <p className="text-gray-700 mb-6">
+          {description}
+        </p>
+        
+        <div className="prose max-w-none text-gray-700 space-y-5">
+          {hasMarkdown ? (
+            <ReactMarkdown>{content}</ReactMarkdown>
+          ) : (
+            formatLetterContent(content)
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Renderiza o conteúdo da carta da API
+  const renderApiLetter = (letter: Letter) => {
+    return (
+      <div className="mb-6">
+        <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
+          <span>CARTA #{letter.number}</span>
+          <span>•</span>
+          <span>{formatDate(letter.publishedAt)}</span>
+        </div>
+        
+        <h1 className="text-3xl font-bold mb-6 font-heading">{letter.title}</h1>
+        
+        <p className="text-gray-700 mb-6">
+          {letter.description}
+        </p>
+        
+        <div className="prose max-w-none text-gray-700 space-y-5">
+          {formatLetterContent(letter.content)}
+        </div>
+      </div>
+    );
+  };
+
+  // Renderiza o conteúdo da carta disponível
+  const renderLetterContent = () => {
+    if (cartaSupabase) {
+      return renderSupabaseCarta(cartaSupabase);
+    } else if (letter) {
+      return renderApiLetter(letter);
+    } else {
+      return (
+        <div className="text-center py-12">
+          <p className="text-gray-500">Carta não encontrada.</p>
+          <Button
+            variant="outline"
+            className="mt-4"
+            onClick={() => setLocation("/dashboard")}
+          >
+            Voltar para o Dashboard
+          </Button>
+        </div>
+      );
+    }
   };
 
   return (
@@ -54,6 +171,7 @@ const LetterPage = ({ params }: LetterPageProps) => {
         ) : error ? (
           <div className="text-center py-12">
             <p className="text-red-500">Erro ao carregar a carta. Por favor, tente novamente.</p>
+            <p className="text-sm text-gray-500 mt-2">{error.message}</p>
             <Button
               variant="outline"
               className="mt-4"
@@ -61,36 +179,9 @@ const LetterPage = ({ params }: LetterPageProps) => {
             >
               Voltar para o Dashboard
             </Button>
-          </div>
-        ) : letter ? (
-          <div className="mb-6">
-            <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
-              <span>CARTA #{letter.number}</span>
-              <span>•</span>
-              <span>{formatDate(letter.publishedAt)}</span>
-            </div>
-            
-            <h1 className="text-3xl font-bold mb-6 font-heading">{letter.title}</h1>
-            
-            <p className="text-gray-700 mb-6">
-              {letter.description}
-            </p>
-            
-            <div className="prose max-w-none text-gray-700 space-y-5">
-              {formatLetterContent(letter.content)}
-            </div>
           </div>
         ) : (
-          <div className="text-center py-12">
-            <p className="text-gray-500">Carta não encontrada.</p>
-            <Button
-              variant="outline"
-              className="mt-4"
-              onClick={() => setLocation("/dashboard")}
-            >
-              Voltar para o Dashboard
-            </Button>
-          </div>
+          renderLetterContent()
         )}
       </main>
       

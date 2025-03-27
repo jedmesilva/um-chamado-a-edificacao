@@ -1,11 +1,11 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Letter } from "@shared/schema";
+import { Letter, SupabaseCarta } from "@shared/schema";
 import { useLocation } from "wouter";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface LetterCardProps {
-  letter: Letter;
+  letter: Letter | SupabaseCarta;
 }
 
 const LetterCard = ({ letter }: LetterCardProps) => {
@@ -16,8 +16,38 @@ const LetterCard = ({ letter }: LetterCardProps) => {
     return format(date, "d 'de' MMMM, yyyy", { locale: ptBR });
   };
 
+  // Verifica se a carta é do tipo Letter (schema local) ou SupabaseCarta
+  const isSupabaseCarta = (carta: any): carta is SupabaseCarta => {
+    return 'id_sumary_carta' in carta;
+  };
+
+  // Obtém os dados formatados da carta, independente da origem
+  const getCartaData = () => {
+    if (isSupabaseCarta(letter)) {
+      // Dados da carta do Supabase
+      const id = letter.id_sumary_carta;
+      const number = letter.id_sumary_carta;
+      const title = letter.jsonbody_carta?.title || 'Sem título';
+      const description = letter.jsonbody_carta?.description || letter.jsonbody_carta?.subtitle || 'Sem descrição';
+      const publishedDate = letter.date_send;
+      
+      return { id, number, title, description, publishedDate };
+    } else {
+      // Dados da carta do schema local
+      return {
+        id: letter.id,
+        number: letter.number,
+        title: letter.title,
+        description: letter.description,
+        publishedDate: letter.publishedAt
+      };
+    }
+  };
+
+  const cartaData = getCartaData();
+
   const handleCardClick = () => {
-    setLocation(`/letter/${letter.id}`);
+    setLocation(`/letter/${cartaData.id}`);
   };
 
   return (
@@ -25,12 +55,12 @@ const LetterCard = ({ letter }: LetterCardProps) => {
       <CardContent className="p-6">
         <div className="flex justify-between items-start mb-4">
           <div>
-            <p className="text-sm text-gray-500 mb-1">CARTA #{letter.number}</p>
-            <h2 className="text-xl font-semibold font-heading">{letter.title}</h2>
+            <p className="text-sm text-gray-500 mb-1">CARTA #{cartaData.number}</p>
+            <h2 className="text-xl font-semibold font-heading">{cartaData.title}</h2>
           </div>
-          <span className="text-sm text-gray-500">{formatDate(letter.publishedAt)}</span>
+          <span className="text-sm text-gray-500">{formatDate(cartaData.publishedDate)}</span>
         </div>
-        <p className="text-gray-600 mb-4">{letter.description}</p>
+        <p className="text-gray-600 mb-4">{cartaData.description}</p>
         <span className="inline-block text-gray-800 font-medium hover:text-gray-600">
           Ler Carta Completa →
         </span>
