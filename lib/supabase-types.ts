@@ -20,9 +20,12 @@ export interface Subscription {
 }
 
 export interface Carta {
-  id_sumary_carta: number;
+  id: number; // ID primário da carta
+  id_sumary_carta: number; // Número/índice da carta para exibição
   date_send: string;
   status_carta: string;
+  title: string; // Título da carta
+  description: string; // Descrição da carta
   jsonbody_carta: any; // Conteúdo da carta em formato JSON
   markdonw_carta: string; // Conteúdo da carta em formato Markdown
 }

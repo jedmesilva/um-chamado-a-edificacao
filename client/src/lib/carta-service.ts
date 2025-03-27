@@ -40,7 +40,7 @@ export const cartaService = {
   // Registra a leitura de uma carta pelo usuário
   async registrarLeitura(cartaId: number, userId: string): Promise<void> {
     try {
-      console.log(`Tentando registrar leitura para carta ${cartaId} e usuário ${userId}`);
+      console.log(`Tentando registrar leitura para carta com id_sumary_carta ${cartaId} e usuário ${userId}`);
       
       // Obter o usuário atual para garantir que temos o ID correto
       const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
@@ -59,11 +59,31 @@ export const cartaService = {
       const currentUserId = user.id;
       console.log(`ID do usuário atual: ${currentUserId}`);
       
+      // Primeiro, obter o ID real da carta a partir do id_sumary_carta
+      const { data: cartaData, error: cartaError } = await supabaseClient
+        .from('cartas_um_chamado_a_edificacao')
+        .select('id, id_sumary_carta')
+        .eq('id_sumary_carta', cartaId)
+        .single();
+      
+      if (cartaError) {
+        console.error(`Erro ao buscar ID real da carta com id_sumary_carta ${cartaId}:`, cartaError);
+        throw cartaError;
+      }
+      
+      if (!cartaData) {
+        console.error(`Carta com id_sumary_carta ${cartaId} não encontrada`);
+        throw new Error(`Carta com id_sumary_carta ${cartaId} não encontrada`);
+      }
+      
+      const realCartaId = cartaData.id;
+      console.log(`ID real da carta: ${realCartaId} (id_sumary_carta: ${cartaId})`);
+      
       // Verifica se já existe um registro para esta carta e usuário
       const { data: existingStatus, error: checkError } = await supabaseClient
         .from('status_carta')
         .select('*')
-        .eq('carta_id', cartaId)
+        .eq('carta_id', realCartaId) // Usar o ID real da carta
         .eq('account_user_id', currentUserId)
         .maybeSingle();
       
@@ -78,13 +98,13 @@ export const cartaService = {
         return;
       }
       
-      // Registra a leitura
+      // Registra a leitura usando o ID real da carta
       const now = new Date().toISOString();
       const { data, error } = await supabaseClient
         .from('status_carta')
         .insert({
           id: uuidv4(),
-          carta_id: cartaId,
+          carta_id: realCartaId, // Usar o ID real da carta
           account_user_id: currentUserId,
           created_at: now,
           status: 'lida'
@@ -96,7 +116,7 @@ export const cartaService = {
         throw error;
       }
       
-      console.log(`Leitura da carta ${cartaId} registrada para o usuário ${currentUserId}`, data);
+      console.log(`Leitura da carta com ID real ${realCartaId} registrada para o usuário ${currentUserId}`, data);
     } catch (error) {
       console.error('Erro ao registrar leitura:', error);
       throw error;

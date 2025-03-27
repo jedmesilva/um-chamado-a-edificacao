@@ -36,7 +36,8 @@ export type InsertLetter = z.infer<typeof insertLetterSchema>;
 
 // Tipo para a carta vinda do Supabase (Carta)
 export interface SupabaseCarta {
-  id_sumary_carta: number;
+  id: number; // ID primário da carta na tabela
+  id_sumary_carta: number; // Número/índice da carta para exibição
   date_send: string;
   status_carta: string;
   title: string; // Título da carta
