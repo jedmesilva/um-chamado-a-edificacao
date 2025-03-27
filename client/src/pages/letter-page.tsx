@@ -5,11 +5,12 @@ import Footer from "@/components/layout/footer";
 import { Letter, SupabaseCarta } from "@shared/schema";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Loader2, ChevronLeft } from "lucide-react";
+import { Loader2, ChevronLeft, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cartaService } from "@/lib/carta-service";
 import { useEffect, useState } from "react";
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
+import { useToast } from "@/hooks/use-toast";
 
 interface LetterPageProps {
   params: {
@@ -21,9 +22,13 @@ const LetterPage = ({ params }: LetterPageProps) => {
   const id = parseInt(params.id);
   const [, setLocation] = useLocation();
   const { user } = useSupabaseAuth();
+  const { toast } = useToast();
   const [cartaSupabase, setCartaSupabase] = useState<SupabaseCarta | null>(null);
   const [isCartaLoading, setIsCartaLoading] = useState(true);
   const [cartaError, setCartaError] = useState<Error | null>(null);
+  const [isLeituraRegistrada, setIsLeituraRegistrada] = useState<boolean>(false);
+  const [showConteudo, setShowConteudo] = useState<boolean>(false);
+  const [registrandoLeitura, setRegistrandoLeitura] = useState<boolean>(false);
 
   // Query para buscar carta pela API REST (fallback)
   const { data: letter, isLoading: isLetterLoading, error: letterError } = useQuery<Letter>({
@@ -40,16 +45,6 @@ const LetterPage = ({ params }: LetterPageProps) => {
         const carta = await cartaService.getCartaById(id);
         setCartaSupabase(carta);
         console.log("Carta carregada do Supabase:", carta);
-        
-        // Registrar leitura da carta se estiver autenticado
-        if (user && carta) {
-          try {
-            await cartaService.registrarLeitura(id, user.id);
-          } catch (registroError) {
-            console.error("Erro ao registrar leitura da carta:", registroError);
-            // Não interrompe o fluxo principal
-          }
-        }
       } catch (error) {
         console.error("Erro ao buscar carta do Supabase:", error);
         setCartaError(error instanceof Error ? error : new Error('Erro desconhecido'));
@@ -59,7 +54,7 @@ const LetterPage = ({ params }: LetterPageProps) => {
     };
 
     fetchCarta();
-  }, [id, user]);
+  }, [id]);
 
   // Determina o estado de carregamento geral
   const isLoading = isCartaLoading || isLetterLoading;
@@ -82,53 +77,55 @@ const LetterPage = ({ params }: LetterPageProps) => {
       );
     });
   };
-
-  // Renderiza o conteúdo da carta do Supabase
-  const renderSupabaseCarta = (carta: SupabaseCarta) => {
-    // Usa campos title e description diretamente da tabela
-    const title = carta.title || carta.jsonbody_carta?.title || 'Sem título';
-    const description = carta.description || carta.jsonbody_carta?.description || carta.jsonbody_carta?.subtitle || 'Sem descrição';
-    const number = carta.id_sumary_carta;
-    const date = carta.date_send;
-    
-    // Obtém o conteúdo da carta, independente do formato
-    let content = '';
-    
-    // Preferência para o conteúdo do JSON
-    if (carta.jsonbody_carta?.content) {
-      content = carta.jsonbody_carta.content;
-    } 
-    // Fallback para o conteúdo em markdown (convertendo para texto normal)
-    else if (carta.markdonw_carta) {
-      content = carta.markdonw_carta;
-    } 
-    else {
-      content = 'Sem conteúdo';
+  
+  // Função para registrar a leitura da carta
+  const registrarLeitura = async () => {
+    if (!user) {
+      toast({
+        title: "Autenticação necessária",
+        description: "Você precisa estar logado para ler esta carta.",
+        variant: "destructive"
+      });
+      return;
     }
-
-    return (
-      <div className="mb-6">
-        <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
-          <span>CARTA #{number}</span>
-          <span>•</span>
-          <span>{formatDate(date)}</span>
-        </div>
-        
-        <h1 className="text-3xl font-bold mb-6 font-heading">{title}</h1>
-        
-        <p className="text-gray-700 mb-6">
-          {description}
-        </p>
-        
-        <div className="prose max-w-none text-gray-700 space-y-5">
-          {formatLetterContent(content)}
-        </div>
-      </div>
-    );
+    
+    if (!cartaSupabase) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar a carta.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      setRegistrandoLeitura(true);
+      await cartaService.registrarLeitura(id, user.id);
+      setIsLeituraRegistrada(true);
+      setShowConteudo(true);
+      
+      toast({
+        title: "Leitura registrada",
+        description: "Agora você pode ler o conteúdo completo da carta.",
+      });
+    } catch (error) {
+      console.error("Erro ao registrar leitura:", error);
+      toast({
+        title: "Erro ao registrar leitura",
+        description: "Ocorreu um erro ao registrar sua leitura. Tente novamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setRegistrandoLeitura(false);
+    }
   };
 
-  // Renderiza o conteúdo da carta da API
+  // Não precisamos mais dessa função, pois o conteúdo foi movido diretamente para renderLetterContent
+  // para permitir a exibição condicional baseada no clique no botão "Ler Carta"
+
+  // Renderiza o conteúdo da carta da API (fallback caso o Supabase não funcione)
   const renderApiLetter = (letter: Letter) => {
+    // Para manter a consistência, também implementamos o botão de ler para cartas da API
     return (
       <div className="mb-6">
         <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
@@ -143,9 +140,34 @@ const LetterPage = ({ params }: LetterPageProps) => {
           {letter.description}
         </p>
         
-        <div className="prose max-w-none text-gray-700 space-y-5">
-          {formatLetterContent(letter.content)}
-        </div>
+        {!showConteudo ? (
+          <div className="text-center py-8">
+            <Button 
+              onClick={registrarLeitura}
+              className="flex items-center justify-center gap-2"
+              size="lg"
+              disabled={registrandoLeitura || !user}
+            >
+              {registrandoLeitura ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <BookOpen className="h-5 w-5" />
+              )}
+              {registrandoLeitura ? "Registrando..." : "Ler Carta"}
+            </Button>
+            
+            {!user && (
+              <p className="text-sm text-gray-500 mt-4">
+                Você precisa estar logado para ler esta carta.
+              </p>
+            )}
+          </div>
+        ) : (
+          // Se o usuário clicou para ler, mostramos o conteúdo completo
+          <div className="prose max-w-none text-gray-700 space-y-5">
+            {formatLetterContent(letter.content)}
+          </div>
+        )}
       </div>
     );
   };
@@ -153,7 +175,60 @@ const LetterPage = ({ params }: LetterPageProps) => {
   // Renderiza o conteúdo da carta disponível
   const renderLetterContent = () => {
     if (cartaSupabase) {
-      return renderSupabaseCarta(cartaSupabase);
+      // Se o usuário ainda não clicou para ler, mostramos apenas o cabeçalho e descrição
+      const title = cartaSupabase.title || cartaSupabase.jsonbody_carta?.title || 'Sem título';
+      const description = cartaSupabase.description || cartaSupabase.jsonbody_carta?.description || cartaSupabase.jsonbody_carta?.subtitle || 'Sem descrição';
+      const number = cartaSupabase.id_sumary_carta;
+      const date = cartaSupabase.date_send;
+      
+      return (
+        <div className="mb-6">
+          <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
+            <span>CARTA #{number}</span>
+            <span>•</span>
+            <span>{formatDate(date)}</span>
+          </div>
+          
+          <h1 className="text-3xl font-bold mb-6 font-heading">{title}</h1>
+          
+          <p className="text-gray-700 mb-6">
+            {description}
+          </p>
+          
+          {!showConteudo ? (
+            <div className="text-center py-8">
+              <Button 
+                onClick={registrarLeitura}
+                className="flex items-center justify-center gap-2"
+                size="lg"
+                disabled={registrandoLeitura || !user}
+              >
+                {registrandoLeitura ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <BookOpen className="h-5 w-5" />
+                )}
+                {registrandoLeitura ? "Registrando..." : "Ler Carta"}
+              </Button>
+              
+              {!user && (
+                <p className="text-sm text-gray-500 mt-4">
+                  Você precisa estar logado para ler esta carta.
+                </p>
+              )}
+            </div>
+          ) : (
+            // Se o usuário clicou para ler, mostramos o conteúdo completo
+            <div className="prose max-w-none text-gray-700 space-y-5">
+              {formatLetterContent(
+                cartaSupabase.jsonbody_carta?.content || 
+                cartaSupabase.markdonw_carta || 
+                'Sem conteúdo'
+              )}
+            </div>
+          )}
+        </div>
+      );
     } else if (letter) {
       return renderApiLetter(letter);
     } else {

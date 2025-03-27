@@ -80,8 +80,12 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
       
       toast({
         title: "Cadastro realizado com sucesso",
-        description: "Você pode fazer login agora",
+        description: "Fazendo login automaticamente...",
       });
+      
+      // Faz login automaticamente após o cadastro
+      await signIn(email, password);
+      
     } catch (error: any) {
       let errorMessage = "Tente novamente mais tarde";
       

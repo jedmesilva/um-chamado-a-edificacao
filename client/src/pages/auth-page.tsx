@@ -110,8 +110,8 @@ const AuthPage = () => {
       // Remove confirmPassword as it's not needed for signup
       const { confirmPassword, ...userData } = data;
       await signUp(userData.email, userData.password, userData.name);
-      setActiveTab("login");
-      registerForm.reset();
+      // Não precisa mais mudar para a aba de login nem resetar o formulário
+      // porque o usuário já será redirecionado automaticamente após o login
     } catch (error) {
       console.error("Erro durante o registro:", error);
     }
