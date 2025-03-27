@@ -55,13 +55,14 @@ const LetterCard = ({ letter }: LetterCardProps) => {
   return (
     <Card className="bg-white shadow rounded-lg overflow-hidden hover:shadow-md transition-shadow cursor-pointer" onClick={handleCardClick}>
       <CardContent className="p-6">
-        <div className="flex justify-between items-start mb-4">
-          <div>
-            <p className="text-sm text-gray-500 mb-1">CARTA #{cartaData.number}</p>
-            <h2 className="text-xl font-semibold font-heading">{cartaData.title}</h2>
-          </div>
+        {/* Linha com número da carta e data lado a lado */}
+        <div className="flex justify-between items-center mb-2">
+          <p className="text-sm text-gray-500">CARTA #{cartaData.number}</p>
           <span className="text-sm text-gray-500">{formatDate(cartaData.publishedDate)}</span>
         </div>
+        
+        {/* Título e descrição em suas próprias linhas */}
+        <h2 className="text-xl font-semibold font-heading mb-3">{cartaData.title}</h2>
         <p className="text-gray-600 mb-4">{cartaData.description}</p>
         <span className="inline-block text-gray-800 font-medium hover:text-gray-600">
           Ler Carta Completa →
