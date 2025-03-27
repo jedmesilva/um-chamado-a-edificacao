@@ -48,36 +48,7 @@ const AuthPage = () => {
       password: "",
     },
   });
-
-  // Check if there's an email and tab in the location search params
-  useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const email = searchParams.get("email");
-    const tab = searchParams.get("tab");
-    
-    if (email) {
-      setEmailFromSubscription(email);
-      
-      // Se tiver um tab especificado (login ou register), use-o
-      if (tab === "login" || tab === "register") {
-        setActiveTab(tab);
-      } else {
-        // Se não tiver tab, por padrão vai para o registro
-        setActiveTab("register");
-      }
-      
-      // Preenche o campo de email no formulário de login também
-      loginForm.setValue("email", email);
-    }
-  }, [loginForm]);
-
-  // Redirect if already logged in
-  useEffect(() => {
-    if (user) {
-      setLocation("/dashboard");
-    }
-  }, [user, setLocation]);
-
+  
   // Register form
   const registerForm = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -88,6 +59,44 @@ const AuthPage = () => {
       confirmPassword: "",
     },
   });
+
+  // Check if there's an email and tab in the location search params
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const email = searchParams.get("email");
+    const tab = searchParams.get("tab");
+    
+    console.log('URL params:', { email, tab });
+    
+    // Se tiver um tab especificado (login ou register), use-o
+    if (tab === "login" || tab === "register") {
+      console.log('Definindo tab para:', tab);
+      setActiveTab(tab);
+    } else if (email) {
+      // Se não tiver tab mas tiver email, por padrão vai para o registro
+      console.log('Email presente sem tab, definindo tab para register');
+      setActiveTab("register");
+    }
+    
+    // Se tiver email, preenche nos formulários
+    if (email) {
+      console.log('Preenchendo email nos formulários:', email);
+      setEmailFromSubscription(email);
+      
+      // Use setTimeout para garantir que os forms já estão disponíveis
+      setTimeout(() => {
+        if (loginForm) loginForm.setValue("email", email);
+        if (registerForm) registerForm.setValue("email", email);
+      }, 0);
+    }
+  }, []);
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      setLocation("/dashboard");
+    }
+  }, [user, setLocation]);
 
   // Update the email field when emailFromSubscription changes
   useEffect(() => {
@@ -124,7 +133,7 @@ const AuthPage = () => {
       <main className="flex-grow flex flex-col items-center justify-center p-6">
         <div className="w-full max-w-md">
           <div className="bg-white rounded-lg shadow-md p-8">
-            <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="login">Entrar</TabsTrigger>
                 <TabsTrigger value="register">Cadastrar</TabsTrigger>
