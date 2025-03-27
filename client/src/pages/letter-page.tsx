@@ -96,7 +96,27 @@ const LetterPage = ({ params }: LetterPageProps) => {
         
         <div className="prose max-w-none text-gray-700 space-y-5">
           {hasMarkdown ? (
-            <ReactMarkdown>{content}</ReactMarkdown>
+            <div className="carta-markdown">
+              <ReactMarkdown
+                components={{
+                  h1: ({node, ...props}) => <h1 className="text-2xl font-bold mb-4 font-heading mt-8" {...props} />,
+                  h2: ({node, ...props}) => <h2 className="text-xl font-bold mb-3 font-heading mt-6" {...props} />,
+                  h3: ({node, ...props}) => <h3 className="text-lg font-bold mb-2 font-heading mt-5" {...props} />,
+                  p: ({node, ...props}) => <p className="mb-5 leading-relaxed text-gray-700" {...props} />,
+                  ul: ({node, ...props}) => <ul className="mb-5 list-disc pl-6" {...props} />,
+                  ol: ({node, ...props}) => <ol className="mb-5 list-decimal pl-6" {...props} />,
+                  li: ({node, ...props}) => <li className="mb-2" {...props} />,
+                  blockquote: ({node, ...props}) => (
+                    <blockquote className="border-l-4 border-gray-300 pl-4 italic my-5 py-2 text-gray-700" {...props} />
+                  ),
+                  a: ({node, ...props}) => <a className="text-blue-600 hover:underline" {...props} />,
+                  strong: ({node, ...props}) => <strong className="font-bold" {...props} />,
+                  em: ({node, ...props}) => <em className="italic" {...props} />,
+                }}
+              >
+                {content}
+              </ReactMarkdown>
+            </div>
           ) : (
             formatLetterContent(content)
           )}
