@@ -27,8 +27,10 @@ const LetterCard = ({ letter }: LetterCardProps) => {
       // Dados da carta do Supabase
       const id = letter.id_sumary_carta;
       const number = letter.id_sumary_carta;
-      const title = letter.jsonbody_carta?.title || 'Sem título';
-      const description = letter.jsonbody_carta?.description || letter.jsonbody_carta?.subtitle || 'Sem descrição';
+      
+      // Usa os campos title e description diretamente da tabela
+      const title = letter.title || letter.jsonbody_carta?.title || 'Sem título';
+      const description = letter.description || letter.jsonbody_carta?.description || letter.jsonbody_carta?.subtitle || 'Sem descrição';
       const publishedDate = letter.date_send;
       
       return { id, number, title, description, publishedDate };

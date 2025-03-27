@@ -39,6 +39,8 @@ export interface SupabaseCarta {
   id_sumary_carta: number;
   date_send: string;
   status_carta: string;
+  title: string; // Título da carta
+  description: string; // Descrição da carta
   jsonbody_carta: any; // Conteúdo da carta em formato JSON
   markdonw_carta: string; // Conteúdo da carta em formato Markdown
 }
