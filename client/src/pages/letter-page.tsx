@@ -9,7 +9,6 @@ import { Loader2, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cartaService } from "@/lib/carta-service";
 import { useEffect, useState } from "react";
-import ReactMarkdown from 'react-markdown';
 
 interface LetterPageProps {
   params: {
@@ -62,9 +61,14 @@ const LetterPage = ({ params }: LetterPageProps) => {
   };
 
   const formatLetterContent = (content: string) => {
-    return content.split('\n\n').map((paragraph, index) => (
-      <p key={index} className="mb-5">{paragraph}</p>
-    ));
+    // Divide o texto por quebras de linha duplas para parágrafos
+    return content.split('\n\n').map((paragraph, index) => {
+      // Substitui quebras de linha simples por espaços dentro de parágrafos para manter o fluxo de leitura
+      const formattedParagraph = paragraph.replace(/\n/g, ' ').trim();
+      return (
+        <p key={index} className="mb-5 text-gray-800 leading-relaxed">{formattedParagraph}</p>
+      );
+    });
   };
 
   // Renderiza o conteúdo da carta do Supabase
@@ -74,11 +78,20 @@ const LetterPage = ({ params }: LetterPageProps) => {
     const number = carta.id_sumary_carta;
     const date = carta.date_send;
     
-    // Verifica se temos conteúdo em markdown ou apenas json
-    const hasMarkdown = carta.markdonw_carta && carta.markdonw_carta.trim().length > 0;
-    const content = hasMarkdown 
-      ? carta.markdonw_carta 
-      : carta.jsonbody_carta?.content || 'Sem conteúdo';
+    // Obtém o conteúdo da carta, independente do formato
+    let content = '';
+    
+    // Preferência para o conteúdo do JSON
+    if (carta.jsonbody_carta?.content) {
+      content = carta.jsonbody_carta.content;
+    } 
+    // Fallback para o conteúdo em markdown (convertendo para texto normal)
+    else if (carta.markdonw_carta) {
+      content = carta.markdonw_carta;
+    } 
+    else {
+      content = 'Sem conteúdo';
+    }
 
     return (
       <div className="mb-6">
@@ -95,31 +108,7 @@ const LetterPage = ({ params }: LetterPageProps) => {
         </p>
         
         <div className="prose max-w-none text-gray-700 space-y-5">
-          {hasMarkdown ? (
-            <div className="carta-markdown">
-              <ReactMarkdown
-                components={{
-                  h1: ({node, ...props}) => <h1 className="text-2xl font-bold mb-4 font-heading mt-8" {...props} />,
-                  h2: ({node, ...props}) => <h2 className="text-xl font-bold mb-3 font-heading mt-6" {...props} />,
-                  h3: ({node, ...props}) => <h3 className="text-lg font-bold mb-2 font-heading mt-5" {...props} />,
-                  p: ({node, ...props}) => <p className="mb-5 leading-relaxed text-gray-700" {...props} />,
-                  ul: ({node, ...props}) => <ul className="mb-5 list-disc pl-6" {...props} />,
-                  ol: ({node, ...props}) => <ol className="mb-5 list-decimal pl-6" {...props} />,
-                  li: ({node, ...props}) => <li className="mb-2" {...props} />,
-                  blockquote: ({node, ...props}) => (
-                    <blockquote className="border-l-4 border-gray-300 pl-4 italic my-5 py-2 text-gray-700" {...props} />
-                  ),
-                  a: ({node, ...props}) => <a className="text-blue-600 hover:underline" {...props} />,
-                  strong: ({node, ...props}) => <strong className="font-bold" {...props} />,
-                  em: ({node, ...props}) => <em className="italic" {...props} />,
-                }}
-              >
-                {content}
-              </ReactMarkdown>
-            </div>
-          ) : (
-            formatLetterContent(content)
-          )}
+          {formatLetterContent(content)}
         </div>
       </div>
     );
