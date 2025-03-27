@@ -73,8 +73,9 @@ const LetterPage = ({ params }: LetterPageProps) => {
 
   // Renderiza o conteúdo da carta do Supabase
   const renderSupabaseCarta = (carta: SupabaseCarta) => {
-    const title = carta.jsonbody_carta?.title || 'Sem título';
-    const description = carta.jsonbody_carta?.description || carta.jsonbody_carta?.subtitle || 'Sem descrição';
+    // Usa campos title e description diretamente da tabela
+    const title = carta.title || carta.jsonbody_carta?.title || 'Sem título';
+    const description = carta.description || carta.jsonbody_carta?.description || carta.jsonbody_carta?.subtitle || 'Sem descrição';
     const number = carta.id_sumary_carta;
     const date = carta.date_send;
     
