@@ -27,6 +27,14 @@ export interface Carta {
   markdonw_carta: string; // Conteúdo da carta em formato Markdown
 }
 
+export interface StatusCarta {
+  id: string;
+  carta_id: number;
+  account_user_id: string;
+  created_at: string;
+  status: string;
+}
+
 export interface SupabaseSchema {
   public: {
     Tables: {
@@ -44,6 +52,11 @@ export interface SupabaseSchema {
         Row: Subscription;
         Insert: Omit<Subscription, 'id' | 'created_at'> & { id?: string };
         Update: Partial<Subscription>;
+      };
+      status_carta: {
+        Row: StatusCarta;
+        Insert: Omit<StatusCarta, 'id' | 'created_at'> & { id?: string };
+        Update: Partial<StatusCarta>;
       };
     };
   };
