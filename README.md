@@ -43,7 +43,7 @@ VITE_SUPABASE_ANON_KEY=sua_chave_anonima_supabase
 
 1. Clone o repositório:
 ```bash
-git clone https://github.com/seu-usuario/um-chamado-a-edificacao.git
+git clone https://github.com/Jedmesilva/um-chamado-a-edificacao.git
 cd um-chamado-a-edificacao
 ```
 
