@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, json } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -16,6 +16,9 @@ export const letters = pgTable("letters", {
   description: text("description").notNull(),
   content: text("content").notNull(),
   publishedAt: timestamp("published_at").notNull(),
+  // Campos adicionais do Supabase
+  jsonContent: json("json_content"),
+  markdownContent: text("markdown_content"),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -30,3 +33,12 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Letter = typeof letters.$inferSelect;
 export type InsertLetter = z.infer<typeof insertLetterSchema>;
+
+// Tipo para a carta vinda do Supabase (Carta)
+export interface SupabaseCarta {
+  id_sumary_carta: number;
+  date_send: string;
+  status_carta: string;
+  jsonbody_carta: any; // Conteúdo da carta em formato JSON
+  markdonw_carta: string; // Conteúdo da carta em formato Markdown
+}
