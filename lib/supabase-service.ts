@@ -20,11 +20,12 @@ export const authService = {
         throw new Error('Falha ao criar usuário no Supabase Auth');
       }
 
-      // 2. Cria o registro na tabela account_user
+      // 2. Cria o registro na tabela account_user usando o mesmo ID do auth.users
+      // para garantir que a chave estrangeira funcione corretamente
       const { data: accountUser, error: accountError } = await supabaseAdmin
         .from('account_user')
         .insert({
-          id: uuidv4(),
+          id: authUser.user.id, // Usando o mesmo ID do auth.users
           user_id: authUser.user.id,
           name,
           email,
@@ -86,10 +87,13 @@ export const authService = {
       }
 
       // Se não existir, cria um novo registro
+      // Geramos um ID único para este usuário, mas quando ele completar o registro
+      // e criar uma conta de autenticação, este ID será atualizado para o ID da conta de auth
+      const tempUserId = uuidv4();
       const { data: newUser, error: insertError } = await supabaseAdmin
         .from('account_user')
         .insert({
-          id: uuidv4(),
+          id: tempUserId, // ID temporário que será atualizado durante o cadastro completo
           email,
           name: '', // Nome será preenchido depois no cadastro completo
           status: 'subscribed', // Status inicial
@@ -137,6 +141,7 @@ export const authService = {
         const { data: updatedUser, error: updateError } = await supabaseAdmin
           .from('account_user')
           .update({
+            id: authUser.user.id, // Atualiza para usar o ID do auth.users 
             user_id: authUser.user.id,
             name,
             status: 'active',
@@ -152,7 +157,7 @@ export const authService = {
         const { data: newUser, error: insertError } = await supabaseAdmin
           .from('account_user')
           .insert({
-            id: uuidv4(),
+            id: authUser.user.id, // Usando o mesmo ID do auth.users
             user_id: authUser.user.id,
             name,
             email,
@@ -367,11 +372,12 @@ export const cartasService = {
         
         // Criar registro na tabela account_user
         if (authUser && authUser.user) {
-          const newAccountId = uuidv4();
+          // Importante: Usar o mesmo ID do usuário como id na tabela account_user
+          // para que a chave estrangeira em status_carta funcione corretamente
           const { error: insertAccountError } = await bypassClient
             .from('account_user')
             .insert({
-              id: newAccountId,
+              id: userId, // Usar o ID do Auth como ID na tabela account_user
               user_id: userId,
               email: authUser.user.email || 'sem-email@exemplo.com',
               name: authUser.user.user_metadata?.name || 'Usuário',
