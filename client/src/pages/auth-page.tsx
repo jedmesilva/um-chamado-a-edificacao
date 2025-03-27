@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 import { insertUserSchema } from "@shared/schema";
@@ -36,6 +36,9 @@ const AuthPage = () => {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<string>("login");
   const [emailFromSubscription, setEmailFromSubscription] = useState<string>("");
+  const [showLoginPassword, setShowLoginPassword] = useState<boolean>(false);
+  const [showRegisterPassword, setShowRegisterPassword] = useState<boolean>(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
 
   // Login form
   const loginForm = useForm<LoginFormValues>({
@@ -154,9 +157,24 @@ const AuthPage = () => {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Senha</FormLabel>
-                            <FormControl>
-                              <Input type="password" placeholder="Sua senha" {...field} />
-                            </FormControl>
+                            <div className="relative">
+                              <FormControl>
+                                <Input 
+                                  type={showLoginPassword ? "text" : "password"} 
+                                  placeholder="Sua senha" 
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="absolute right-0 top-0 h-full px-3 py-2 text-gray-400 hover:text-gray-600"
+                                onClick={() => setShowLoginPassword(!showLoginPassword)}
+                              >
+                                {showLoginPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                              </Button>
+                            </div>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -224,9 +242,24 @@ const AuthPage = () => {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Senha</FormLabel>
-                            <FormControl>
-                              <Input type="password" placeholder="Crie uma senha" {...field} />
-                            </FormControl>
+                            <div className="relative">
+                              <FormControl>
+                                <Input 
+                                  type={showRegisterPassword ? "text" : "password"} 
+                                  placeholder="Crie uma senha" 
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="absolute right-0 top-0 h-full px-3 py-2 text-gray-400 hover:text-gray-600"
+                                onClick={() => setShowRegisterPassword(!showRegisterPassword)}
+                              >
+                                {showRegisterPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                              </Button>
+                            </div>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -238,9 +271,24 @@ const AuthPage = () => {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Confirmar Senha</FormLabel>
-                            <FormControl>
-                              <Input type="password" placeholder="Confirme sua senha" {...field} />
-                            </FormControl>
+                            <div className="relative">
+                              <FormControl>
+                                <Input 
+                                  type={showConfirmPassword ? "text" : "password"} 
+                                  placeholder="Confirme sua senha" 
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="absolute right-0 top-0 h-full px-3 py-2 text-gray-400 hover:text-gray-600"
+                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                              >
+                                {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                              </Button>
+                            </div>
                             <FormMessage />
                           </FormItem>
                         )}

@@ -9,6 +9,7 @@ import { Loader2, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cartaService } from "@/lib/carta-service";
 import { useEffect, useState } from "react";
+import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
 
 interface LetterPageProps {
   params: {
@@ -19,6 +20,7 @@ interface LetterPageProps {
 const LetterPage = ({ params }: LetterPageProps) => {
   const id = parseInt(params.id);
   const [, setLocation] = useLocation();
+  const { user } = useSupabaseAuth();
   const [cartaSupabase, setCartaSupabase] = useState<SupabaseCarta | null>(null);
   const [isCartaLoading, setIsCartaLoading] = useState(true);
   const [cartaError, setCartaError] = useState<Error | null>(null);
@@ -38,6 +40,16 @@ const LetterPage = ({ params }: LetterPageProps) => {
         const carta = await cartaService.getCartaById(id);
         setCartaSupabase(carta);
         console.log("Carta carregada do Supabase:", carta);
+        
+        // Registrar leitura da carta se estiver autenticado
+        if (user && carta) {
+          try {
+            await cartaService.registrarLeitura(id, user.id);
+          } catch (registroError) {
+            console.error("Erro ao registrar leitura da carta:", registroError);
+            // Não interrompe o fluxo principal
+          }
+        }
       } catch (error) {
         console.error("Erro ao buscar carta do Supabase:", error);
         setCartaError(error instanceof Error ? error : new Error('Erro desconhecido'));
@@ -47,7 +59,7 @@ const LetterPage = ({ params }: LetterPageProps) => {
     };
 
     fetchCarta();
-  }, [id]);
+  }, [id, user]);
 
   // Determina o estado de carregamento geral
   const isLoading = isCartaLoading || isLetterLoading;

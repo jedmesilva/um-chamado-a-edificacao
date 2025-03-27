@@ -227,33 +227,42 @@ export const subscriptionService = {
   // Cria um novo registro de subscrição
   async createSubscription(email: string): Promise<Subscription> {
     try {
-      // Vamos verificar a estrutura da tabela primeiro
-      const { data: tableInfo, error: tableError } = await supabaseAdmin
+      // Vamos verificar se o email já existe na tabela
+      const { data: existingSubscription, error: checkError } = await supabaseAdmin
         .from('subscription_um_chamado')
         .select('*')
-        .limit(1);
+        .eq('email_subscription', email)
+        .maybeSingle();
       
-      console.log('Estrutura da tabela subscription_um_chamado:', tableInfo);
-      
-      // Preparar o objeto de inserção sem o campo status
-      const subscriptionData: any = {
-        id: uuidv4(),
-        email_subscription: email
-      };
-      
-      // Se a tabela tiver uma coluna status, incluir o valor
-      // Isso é feito de forma condicional para evitar o erro
-      if (tableInfo && tableInfo.length > 0 && 'status' in tableInfo[0]) {
-        subscriptionData.status = 'active';
+      if (checkError) {
+        console.error('Erro ao verificar subscrição existente:', checkError);
       }
+      
+      // Se já existe uma subscrição com este email, retornamos ela
+      if (existingSubscription) {
+        console.log('Subscrição já existe, retornando existente:', existingSubscription);
+        return existingSubscription;
+      }
+      
+      // Preparar o objeto de inserção com timestamp atual
+      const now = new Date().toISOString();
       
       const { data, error } = await supabaseAdmin
         .from('subscription_um_chamado')
-        .insert(subscriptionData)
+        .insert({
+          id: uuidv4(),
+          email_subscription: email,
+          created_at: now
+        })
         .select()
         .single();
         
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao inserir na tabela subscription_um_chamado:', error);
+        throw error;
+      }
+      
+      console.log('Subscrição criada com sucesso:', data);
       return data;
     } catch (error) {
       console.error('Erro ao criar subscrição:', error);
@@ -323,6 +332,51 @@ export const cartasService = {
     } catch (error) {
       console.error(`Erro ao buscar carta ${id}:`, error);
       return null;
+    }
+  },
+  
+  // Registra a leitura de uma carta pelo usuário
+  async registrarLeitura(cartaId: number, userId: string): Promise<void> {
+    try {
+      // Verifica se já existe um registro para esta carta e usuário
+      const { data: existingStatus, error: checkError } = await supabaseClient
+        .from('status_carta')
+        .select('*')
+        .eq('carta_id', cartaId)
+        .eq('account_user_id', userId)
+        .maybeSingle();
+      
+      if (checkError) {
+        console.error('Erro ao verificar status da carta:', checkError);
+        return;
+      }
+      
+      // Se já existe, não faz nada
+      if (existingStatus) {
+        console.log('Status da carta já registrado:', existingStatus);
+        return;
+      }
+      
+      // Registra a leitura
+      const now = new Date().toISOString();
+      const { error } = await supabaseClient
+        .from('status_carta')
+        .insert({
+          id: uuidv4(),
+          carta_id: cartaId,
+          account_user_id: userId,
+          created_at: now,
+          status: 'lida'
+        });
+      
+      if (error) {
+        console.error('Erro ao registrar leitura da carta:', error);
+        throw error;
+      }
+      
+      console.log(`Leitura da carta ${cartaId} registrada para o usuário ${userId}`);
+    } catch (error) {
+      console.error('Erro ao registrar leitura:', error);
     }
   }
 };
