@@ -1,5 +1,5 @@
 import { supabaseAdmin, supabaseClient } from './supabase';
-import { AccountUser, Carta } from './supabase-types';
+import { AccountUser, Carta, Subscription } from './supabase-types';
 import { v4 as uuidv4 } from 'uuid';
 
 // Serviço de autenticação e gerenciamento de usuários
@@ -203,6 +203,76 @@ export const authService = {
       return null;
     }
   },
+};
+
+// Serviço para gerenciar as subscrições
+export const subscriptionService = {
+  // Verifica se um email já existe na tabela de subscrições
+  async checkSubscription(email: string): Promise<Subscription | null> {
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('subscription_um_chamado')
+        .select('*')
+        .eq('email_subscription', email)
+        .maybeSingle();
+        
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Erro ao verificar subscrição:', error);
+      return null;
+    }
+  },
+  
+  // Cria um novo registro de subscrição
+  async createSubscription(email: string): Promise<Subscription> {
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('subscription_um_chamado')
+        .insert({
+          id: uuidv4(),
+          email_subscription: email,
+          status: 'active'
+        })
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Erro ao criar subscrição:', error);
+      throw error;
+    }
+  },
+  
+  // Verifica se o email já é um usuário registrado
+  async checkUserExists(email: string): Promise<boolean> {
+    try {
+      // Verifica na tabela de usuários do auth
+      const { data, error } = await supabaseAdmin.auth.admin.listUsers();
+      
+      if (error) throw error;
+      
+      if (data && data.users) {
+        const userExists = data.users.some(user => user.email === email);
+        if (userExists) return true;
+      }
+      
+      // Verifica também na tabela account_user
+      const { data: accountUser, error: accountError } = await supabaseAdmin
+        .from('account_user')
+        .select('*')
+        .eq('email', email)
+        .maybeSingle();
+        
+      if (accountError) throw accountError;
+      
+      return !!accountUser;
+    } catch (error) {
+      console.error('Erro ao verificar existência de usuário:', error);
+      return false;
+    }
+  }
 };
 
 // Serviço para gerenciar as cartas

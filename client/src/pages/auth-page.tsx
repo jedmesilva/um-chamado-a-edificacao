@@ -37,23 +37,6 @@ const AuthPage = () => {
   const [activeTab, setActiveTab] = useState<string>("login");
   const [emailFromSubscription, setEmailFromSubscription] = useState<string>("");
 
-  // Check if there's an email in the location search params
-  useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const email = searchParams.get("email");
-    if (email) {
-      setEmailFromSubscription(email);
-      setActiveTab("register");
-    }
-  }, []);
-
-  // Redirect if already logged in
-  useEffect(() => {
-    if (user) {
-      setLocation("/dashboard");
-    }
-  }, [user, setLocation]);
-
   // Login form
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -62,6 +45,35 @@ const AuthPage = () => {
       password: "",
     },
   });
+
+  // Check if there's an email and tab in the location search params
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const email = searchParams.get("email");
+    const tab = searchParams.get("tab");
+    
+    if (email) {
+      setEmailFromSubscription(email);
+      
+      // Se tiver um tab especificado (login ou register), use-o
+      if (tab === "login" || tab === "register") {
+        setActiveTab(tab);
+      } else {
+        // Se não tiver tab, por padrão vai para o registro
+        setActiveTab("register");
+      }
+      
+      // Preenche o campo de email no formulário de login também
+      loginForm.setValue("email", email);
+    }
+  }, [loginForm]);
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      setLocation("/dashboard");
+    }
+  }, [user, setLocation]);
 
   // Register form
   const registerForm = useForm<RegisterFormValues>({

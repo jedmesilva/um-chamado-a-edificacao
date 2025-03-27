@@ -12,6 +12,13 @@ export interface AccountUser {
   status: string;
 }
 
+export interface Subscription {
+  id: string;
+  email_subscription: string;
+  created_at: string;
+  status: string;
+}
+
 export interface Carta {
   id_sumary_carta: number;
   date_send: string;
@@ -32,6 +39,11 @@ export interface SupabaseSchema {
         Row: Carta;
         Insert: Carta;
         Update: Partial<Carta>;
+      };
+      subscription_um_chamado: {
+        Row: Subscription;
+        Insert: Omit<Subscription, 'id' | 'created_at'> & { id?: string };
+        Update: Partial<Subscription>;
       };
     };
   };
