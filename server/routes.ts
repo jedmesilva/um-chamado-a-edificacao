@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
-import { authService } from "../lib/supabase-service";
+import { authService, subscriptionService } from "../lib/supabase-service";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes
@@ -89,16 +89,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email é obrigatório" });
       }
 
-      // Usar o serviço do Supabase importado para o pré-registro
-
       try {
-        // Criar ou atualizar o pré-registro do usuário
-        const accountUser = await authService.createOrUpdateSubscription(email);
+        // 1. Verifica se o usuário já existe no sistema de autenticação
+        const userExists = await subscriptionService.checkUserExists(email);
         
-        // Retorna o email para redirecionamento para página de cadastro completo
-        res.status(200).json({ email, userId: accountUser.id });
+        // Se o usuário já existe, redireciona para o login
+        if (userExists) {
+          return res.status(200).json({ 
+            message: "Usuário já cadastrado",
+            email,
+            redirect: "login"
+          });
+        }
+        
+        // 2. Verifica se já existe uma subscrição para este email
+        const existingSubscription = await subscriptionService.checkSubscription(email);
+        
+        // 3. Se não existir, cria um novo registro na tabela subscription_um_chamado
+        if (!existingSubscription) {
+          await subscriptionService.createSubscription(email);
+        }
+        
+        // 4. Retorna o email para redirecionamento para página de cadastro completo
+        res.status(200).json({ 
+          message: "Email registrado com sucesso",
+          email, 
+          redirect: "register" 
+        });
       } catch (error: any) {
-        console.error("Erro ao pré-registrar usuário:", error);
+        console.error("Erro ao processar inscrição:", error);
         return res.status(500).json({ 
           message: "Erro ao processar inscrição", 
           details: error.message 

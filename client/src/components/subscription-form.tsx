@@ -31,16 +31,33 @@ const SubscriptionForm = () => {
   const onSubmit = async (data: SubscribeFormValues) => {
     setIsSubmitting(true);
     try {
-      // Registra o email no Supabase e cria o pré-cadastro
-      const response = await apiRequest("POST", "/api/subscribe", data);
+      // Registra o email no Supabase e verifica se já existe
+      const response = await apiRequest<{
+        message: string;
+        email: string;
+        redirect?: "login" | "register";
+      }>("POST", "/api/subscribe", data);
       
-      toast({
-        title: "Inscrição recebida!",
-        description: "Agora complete seu cadastro para receber as cartas.",
-      });
-      
-      // Redirect to registration with email in query params
-      setLocation(`/auth?email=${encodeURIComponent(data.email)}`);
+      // Prepara o redirecionamento com base na resposta da API
+      if (response.redirect === "login") {
+        // Usuário já existe, redireciona para login
+        toast({
+          title: "Usuário já cadastrado!",
+          description: "Faça login para acessar as cartas.",
+        });
+        
+        // Redirect to login with email in query params
+        setLocation(`/auth?email=${encodeURIComponent(data.email)}&tab=login`);
+      } else {
+        // Novo usuário, redireciona para o registro
+        toast({
+          title: "Inscrição recebida!",
+          description: "Agora complete seu cadastro para receber as cartas.",
+        });
+        
+        // Redirect to registration with email in query params
+        setLocation(`/auth?email=${encodeURIComponent(data.email)}&tab=register`);
+      }
     } catch (error) {
       let errorMessage = "Ocorreu um erro. Tente novamente.";
       
