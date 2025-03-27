@@ -227,13 +227,29 @@ export const subscriptionService = {
   // Cria um novo registro de subscrição
   async createSubscription(email: string): Promise<Subscription> {
     try {
+      // Vamos verificar a estrutura da tabela primeiro
+      const { data: tableInfo, error: tableError } = await supabaseAdmin
+        .from('subscription_um_chamado')
+        .select('*')
+        .limit(1);
+      
+      console.log('Estrutura da tabela subscription_um_chamado:', tableInfo);
+      
+      // Preparar o objeto de inserção sem o campo status
+      const subscriptionData: any = {
+        id: uuidv4(),
+        email_subscription: email
+      };
+      
+      // Se a tabela tiver uma coluna status, incluir o valor
+      // Isso é feito de forma condicional para evitar o erro
+      if (tableInfo && tableInfo.length > 0 && 'status' in tableInfo[0]) {
+        subscriptionData.status = 'active';
+      }
+      
       const { data, error } = await supabaseAdmin
         .from('subscription_um_chamado')
-        .insert({
-          id: uuidv4(),
-          email_subscription: email,
-          status: 'active'
-        })
+        .insert(subscriptionData)
         .select()
         .single();
         

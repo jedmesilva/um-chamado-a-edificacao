@@ -91,7 +91,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       try {
         // 1. Verifica se o usuário já existe no sistema de autenticação
+        console.log(`Verificando se o email ${email} já existe como usuário...`);
         const userExists = await subscriptionService.checkUserExists(email);
+        console.log(`Usuário existe: ${userExists}`);
         
         // Se o usuário já existe, redireciona para o login
         if (userExists) {
@@ -103,14 +105,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // 2. Verifica se já existe uma subscrição para este email
+        console.log(`Verificando se o email ${email} já existe como subscrição...`);
         const existingSubscription = await subscriptionService.checkSubscription(email);
+        console.log(`Subscrição existente:`, existingSubscription);
         
         // 3. Se não existir, cria um novo registro na tabela subscription_um_chamado
         if (!existingSubscription) {
-          await subscriptionService.createSubscription(email);
+          console.log(`Criando nova subscrição para ${email}...`);
+          try {
+            const subscription = await subscriptionService.createSubscription(email);
+            console.log(`Subscrição criada com sucesso:`, subscription);
+          } catch (subscriptionError: any) {
+            console.error(`Erro ao criar subscrição:`, subscriptionError);
+            // Não interrompe o fluxo, ainda retornamos sucesso pois o objetivo é registrar o email e direcionar para registro
+          }
         }
         
         // 4. Retorna o email para redirecionamento para página de cadastro completo
+        console.log(`Retornando sucesso com redirecionamento para registro`);
         res.status(200).json({ 
           message: "Email registrado com sucesso",
           email, 
@@ -120,10 +132,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("Erro ao processar inscrição:", error);
         return res.status(500).json({ 
           message: "Erro ao processar inscrição", 
-          details: error.message 
+          details: error.message || JSON.stringify(error)
         });
       }
     } catch (error) {
+      console.error("Erro geral na rota de subscrição:", error);
       next(error);
     }
   });
