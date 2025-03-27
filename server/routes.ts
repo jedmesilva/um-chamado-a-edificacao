@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
-import { authService, subscriptionService } from "../lib/supabase-service";
+import { authService, subscriptionService, cartasService } from "../lib/supabase-service";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes
@@ -137,6 +137,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error) {
       console.error("Erro geral na rota de subscrição:", error);
+      next(error);
+    }
+  });
+  
+  // Rota para registrar leitura de carta
+  app.post("/api/cartas/registrar-leitura", async (req, res, next) => {
+    try {
+      const { cartaId, userId } = req.body;
+      
+      if (!cartaId || !userId) {
+        return res.status(400).json({ message: "ID da carta e ID do usuário são obrigatórios" });
+      }
+      
+      console.log(`Registrando leitura da carta com id_sumary_carta ${cartaId} para o usuário ${userId} via API`);
+      
+      try {
+        // Primeiro, obter o ID real da carta a partir do id_sumary_carta
+        const carta = await cartasService.getCartaById(cartaId);
+        
+        if (!carta) {
+          return res.status(404).json({ message: "Carta não encontrada" });
+        }
+        
+        // Usar o ID real da carta para registrar leitura
+        const cartaRealId = carta.id;
+        console.log(`ID real da carta: ${cartaRealId} (id_sumary_carta: ${cartaId})`);
+        
+        // Registrar leitura via servidor (usando o cliente com chave administrativa)
+        await cartasService.registrarLeitura(cartaRealId, userId);
+        
+        return res.status(200).json({ 
+          message: "Leitura registrada com sucesso",
+          cartaId: cartaRealId
+        });
+      } catch (error: any) {
+        console.error("Erro ao registrar leitura:", error);
+        return res.status(500).json({ 
+          message: "Erro ao registrar leitura", 
+          details: error.message || JSON.stringify(error)
+        });
+      }
+    } catch (error) {
+      console.error("Erro geral na rota de registro de leitura:", error);
       next(error);
     }
   });
